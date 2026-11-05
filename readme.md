@@ -1,10 +1,4 @@
-You're right. You want the entire README properly formatted in Markdown, not a mixture of plain text and code snippets.
 
-Copy and paste this directly into `README.md`:
-
-markdown
-
-````markdown
 # PAYGO Solar Energy Meter – Firmware
 
 ## Overview
