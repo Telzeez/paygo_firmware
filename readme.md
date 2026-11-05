@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 
 # PAYGO Solar Energy Meter – Firmware
 
@@ -188,4 +188,4 @@ The server remains authoritative for the stored balance. The firmware tracks
 local consumption as pending and in-flight energy and uses the existing
 optimistic `expected` balance check when syncing. It retains the prior startup
 and offline behavior, including the relay cutoff threshold and NVS recovery.
->>>>>>> a89cb6b (feat: refactor the firmware to modular code)
+
