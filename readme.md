@@ -158,6 +158,20 @@ certificate validation is required; the firmware intentionally has no
 remote sync fails closed and the existing offline stored-balance path remains
 available.
 
+## Backend and MQTT integration status
+
+This firmware does **not** connect to MQTT. It has no MQTT client, broker
+configuration, device subscription, or MQTT acknowledgement handler. Its
+network synchronization currently uses HTTPS heartbeat and balance-update
+requests only.
+
+The backend has MQTT credit-delivery and acknowledgement logic, but that is not
+connected end to end to this firmware. Do not treat a successful payment, an
+HTTPS heartbeat, or a balance update as proof that a physical meter received
+and applied a purchase credit. Hardware delivery must remain unconfirmed until
+the firmware and backend implement and pass an integrated delivery and
+acknowledgement flow.
+
 ## Current protocol limitations
 
 The backend's existing heartbeat and balance endpoints do not authenticate a
