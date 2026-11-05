@@ -1,0 +1,3 @@
+# Per-device credentials and deployment identity.
+src/Secrets.h
+src/DeviceConfig.h

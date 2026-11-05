@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # PAYGO Solar Energy Meter – Firmware
 
@@ -104,3 +105,73 @@ The device must then synchronize with the server again to obtain the updated aut
 | Local deductions | Energy usage is deducted directly on the device. |
 | Server authority | The server maintains the official remaining balance. |
 | Automatic |  |
+=======
+# PayGo ESP32 energy meter firmware
+
+The firmware targets the hardware wiring already used by the project: an ESP32,
+a UART-connected PZEM energy meter, a 16×2 I²C LCD, a load relay, a buzzer, and
+an active-low confirmation button.
+
+## Hardware map
+
+| Component | ESP32 connection / setting |
+| --- | --- |
+| PZEM UART RX / TX | GPIO 16 / GPIO 17, 9600 baud |
+| I²C SDA / SCL | GPIO 21 / GPIO 22 |
+| LCD address | `0x27`, 16 columns × 2 rows |
+| Relay control | GPIO 5, active high |
+| Buzzer control | GPIO 23, active high |
+| Page button | GPIO 4, active low with internal pull-up |
+
+These settings are preserved from the previous firmware. Confirm the relay
+module's electrical polarity and the meter's UART levels against the actual
+board before connecting a live load. This refactor does not change the balance
+calculation, relay threshold, or offline balance behavior.
+
+## Source layout
+
+- `paygo_firmware.ino` — Arduino entry point.
+- `src/HardwareConfig.h` — pin map, timing, and energy thresholds.
+- `src/PzemMeter.*` — PZEM request, Modbus CRC, and register conversion.
+- `src/BalanceStore.*` — ESP32 Preferences/NVS persistence.
+- `src/PayGoApi.*` — Wi-Fi, HTTPS, JSON, heartbeat, and balance update calls.
+- `src/FrontPanel.*` — LCD pages and button handling.
+- `src/LoadRelay.*` and `src/LowBalanceBuzzer.*` — physical outputs.
+- `src/PayGoApp.*` — startup, task coordination, energy accounting, and policy.
+
+## Build with Arduino IDE
+
+1. Install the ESP32 Arduino board package.
+2. Install the `ArduinoJson` 7 and `LiquidCrystal_I2C` libraries.
+3. Copy `src/DeviceConfig.example.h` to `src/DeviceConfig.h`, then set the
+   registered meter ID and API base URL. Do not configure the shared demo
+   `DEVICE-001` for a customer meter.
+4. Copy `src/Secrets.example.h` to `src/Secrets.h`, then configure Wi-Fi and
+   paste the verified CA certificate for the configured API host. Set
+   `PAYGO_TLS_CA_CONFIGURED` to `1` only after verifying that certificate chain.
+5. Open `paygo_firmware.ino` in Arduino IDE, choose the correct ESP32 board and
+   port, then build and flash.
+
+Device-specific config and Wi-Fi credentials are ignored by Git. HTTPS
+certificate validation is required; the firmware intentionally has no
+`setInsecure()` fallback. If system time or certificate verification fails,
+remote sync fails closed and the existing offline stored-balance path remains
+available.
+
+## Current protocol limitations
+
+The backend's existing heartbeat and balance endpoints do not authenticate a
+device-bound cryptographic identity. HTTPS protects the transport, but does not
+prove meter ownership to the backend. Do not enable self-service pairing or
+treat a configured device ID as ownership verification until the backend and
+firmware share a reviewed, device-specific challenge and proof protocol. That
+protocol also requires compatible backend authorization and provisioning
+changes.
+
+## Runtime behavior
+
+The server remains authoritative for the stored balance. The firmware tracks
+local consumption as pending and in-flight energy and uses the existing
+optimistic `expected` balance check when syncing. It retains the prior startup
+and offline behavior, including the relay cutoff threshold and NVS recovery.
+>>>>>>> a89cb6b (feat: refactor the firmware to modular code)
