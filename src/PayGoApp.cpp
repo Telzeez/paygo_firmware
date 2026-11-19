@@ -184,6 +184,20 @@ void PayGoApp::sendHeartbeat() {
   Serial.printf("Heartbeat HTTP code: %d\n", reply.httpStatus);
 
   if (reply.httpStatus == 200 && reply.hasBalance) {
+    if (reply.resetBalance) {
+      portENTER_CRITICAL(&mux_);
+      balanceKwh_ = 0;
+      pendingKwh_ = 0;
+      inflightKwh_ = 0;
+      needSave_ = true;
+      portEXIT_CRITICAL(&mux_);
+      updateEnergyLogic();
+      saveToStorage();
+      Serial.printf("Owner balance reset command %s applied. Local balance is now 0 kWh\\n",
+                    reply.resetCommandId.c_str());
+      return;
+    }
+
     bool topupDetected = false;
     double topupKwh = 0;
     bool balanceChanged = false;
