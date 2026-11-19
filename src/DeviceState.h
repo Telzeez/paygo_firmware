@@ -30,5 +30,7 @@ struct BalanceReply {
   int httpStatus = 0;
   bool hasBalance = false;
   double balanceKwh = 0;
+  bool resetBalance = false;
+  String resetCommandId;
   String error;
 };
