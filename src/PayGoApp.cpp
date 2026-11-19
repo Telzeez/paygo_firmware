@@ -193,7 +193,7 @@ void PayGoApp::sendHeartbeat() {
       portEXIT_CRITICAL(&mux_);
       updateEnergyLogic();
       saveToStorage();
-      Serial.printf("Owner balance reset command %s applied. Local balance is now 0 kWh\\n",
+      Serial.printf("Owner balance reset command %s applied. Local balance is now 0 kWh\n",
                     reply.resetCommandId.c_str());
       return;
     }
