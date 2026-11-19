@@ -16,4 +16,5 @@ class PayGoApi {
   BalanceReply sendRequest(const char* method, const String& url, const String& body);
   static bool parseBalance(const String& body, double& balanceKwh);
   String deviceEndpoint(const char* suffix) const;
+  String pendingResetAckId_;
 };
