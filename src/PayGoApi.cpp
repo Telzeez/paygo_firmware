@@ -53,7 +53,24 @@ String PayGoApi::deviceEndpoint(const char* suffix) const {
 }
 
 BalanceReply PayGoApi::postHeartbeat() {
-  return sendRequest("POST", deviceEndpoint("/heartbeat"), "{}");
+  JsonDocument request;
+  if (pendingResetAckId_.length() > 0) {
+    request["ackBalanceReset"] = pendingResetAckId_;
+  }
+  String body;
+  serializeJson(request, body);
+
+  const bool sentResetAck = pendingResetAckId_.length() > 0;
+  BalanceReply reply = sendRequest("POST", deviceEndpoint("/heartbeat"), body);
+  if (reply.httpStatus == 200) {
+    if (sentResetAck) {
+      pendingResetAckId_ = "";
+    }
+    if (reply.resetBalance && reply.resetCommandId.length() > 0) {
+      pendingResetAckId_ = reply.resetCommandId;
+    }
+  }
+  return reply;
 }
 
 BalanceReply PayGoApi::putBalance(double balanceKwh, double expectedKwh) {
@@ -97,6 +114,11 @@ BalanceReply PayGoApi::sendRequest(const char* method, const String& url, const 
   if (result.httpStatus > 0) {
     const String responseBody = http.getString();
     result.hasBalance = parseBalance(responseBody, result.balanceKwh);
+    JsonDocument response;
+    if (!deserializeJson(response, responseBody)) {
+      result.resetBalance = response["resetBalance"] | false;
+      result.resetCommandId = response["resetCommandId"] | "";
+    }
   } else {
     result.error = http.errorToString(result.httpStatus);
   }
