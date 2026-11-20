@@ -1,116 +1,6 @@
+# PAYGO ESP32 Meter Firmware
 
-
-# PAYGO Solar Energy Meter – Firmware
-
-## Overview
-
-A Pay-As-You-Go (PAYGO) solar energy metering system where the device handles local energy deductions while the server maintains the authoritative remaining balance.
-
-The device continuously tracks energy consumption, updates the available balance locally, and synchronizes the remaining balance with the server to ensure accurate billing and prevent top-ups from being overwritten.
-
-## How It Works
-
-### 1. Server as the Source of Truth
-
-- `balanceKwh` represents the last authoritative balance received from the server.
-- The server stores and maintains the official remaining energy balance.
-- The device uses this balance as its reference for local energy deductions.
-
-### 2. Local Energy Deduction
-
-The device deducts energy consumption locally to ensure that the displayed balance and relay status remain up to date.
-
-The available balance is calculated as:
-
-```text
-available = balanceKwh - pending - inflight
-````
-
-Where:
-
-- `balanceKwh` — Last balance received from the server.
-- `pending` — Energy consumption waiting to be synchronized.
-- `inflight` — Energy consumption currently being synchronized.
-
-This ensures the device always reflects the actual available energy, even between server updates.
-
-### 3. Synchronization on Reboot
-
-Whenever the device reboots:
-
-1. It connects to the Wi-Fi network.
-2. It synchronizes with the server.
-3. It retrieves the latest authoritative energy balance.
-4. It updates its local balance.
-5. It enables the relay only after a successful synchronization.
-
-This prevents the device from operating with an outdated balance after a restart.
-
-### 4. Periodic Server Synchronization (Heartbeat)
-
-Every 10 seconds, the device sends an HTTP `PUT` request to the server containing the remaining energy balance.
-
-Request payload:
-
-json
-
-```json
-{
-  "balance": 12.5,
-  "expected": 15.0
-}
-```
-
-Where:
-
-- `balance` — The remaining energy balance calculated by the device.
-- `expected` — The last authoritative balance the device received from the server.
-
-The heartbeat also:
-
-- Marks the device as `ONLINE` on the server.
-- Synchronizes the remaining energy balance.
-- Retrieves updated balances, including newly purchased top-ups.
-
-### 5. Conflict Protection (HTTP 409)
-
-The `expected` field provides optimistic concurrency protection.
-
-Before accepting an update, the server checks whether the current stored balance still matches the device's expected balance.
-
-Example:
-
-1. The device last synchronized a balance of `15 kWh`.
-2. The customer purchases an additional `10 kWh`.
-3. The server balance becomes `25 kWh`.
-4. The device attempts to upload its remaining balance using:
-   json
-   ```json
-   {
-     "balance": 12.5,
-     "expected": 15.0
-   }
-   ```
-5. The server detects that its current balance (`25 kWh`) no longer matches the expected balance (`15 kWh`).
-6. The server rejects the update with `HTTP 409 Conflict`.
-
-This prevents the device from accidentally overwriting newly purchased energy.
-
-The device must then synchronize with the server again to obtain the updated authoritative balance.
-
-## Key Features
-
-| Feature | Description |
-| --- | --- |
-| Local deductions | Energy usage is deducted directly on the device. |
-| Server authority | The server maintains the official remaining balance. |
-| Automatic |  |
-=======
-# PayGo ESP32 energy meter firmware
-
-The firmware targets the hardware wiring already used by the project: an ESP32,
-a UART-connected PZEM energy meter, a 16×2 I²C LCD, a load relay, a buzzer, and
-an active-low confirmation button.
+Firmware for the PAYGO solar energy meter built around an ESP32, PZEM-004T, 12×2 I²C LCD, load relay, buzzer and confirmation button.
 
 ## Hardware map
 
@@ -118,74 +8,62 @@ an active-low confirmation button.
 | --- | --- |
 | PZEM UART RX / TX | GPIO 16 / GPIO 17, 9600 baud |
 | I²C SDA / SCL | GPIO 21 / GPIO 22 |
-| LCD address | `0x27`, 16 columns × 2 rows |
+| LCD | I²C address `0x27`, 12 columns × 2 rows |
 | Relay control | GPIO 5, active high |
 | Buzzer control | GPIO 23, active high |
 | Page button | GPIO 4, active low with internal pull-up |
 
-These settings are preserved from the previous firmware. Confirm the relay
-module's electrical polarity and the meter's UART levels against the actual
-board before connecting a live load. This refactor does not change the balance
-calculation, relay threshold, or offline balance behavior.
+The existing pin assignments and balance/relay policy are preserved. Confirm the relay module polarity and PZEM UART electrical levels against the actual board before connecting a live load.
 
-## Source layout
+## LCD dashboard
 
-- `paygo_firmware.ino` — Arduino entry point.
-- `src/HardwareConfig.h` — pin map, timing, and energy thresholds.
-- `src/PzemMeter.*` — PZEM request, Modbus CRC, and register conversion.
-- `src/BalanceStore.*` — ESP32 Preferences/NVS persistence.
-- `src/PayGoApi.*` — Wi-Fi, HTTPS, JSON, heartbeat, and balance update calls.
-- `src/FrontPanel.*` — LCD pages and button handling.
-- `src/LoadRelay.*` and `src/LowBalanceBuzzer.*` — physical outputs.
-- `src/PayGoApp.*` — startup, task coordination, energy accounting, and policy.
+The LCD rotates through three pages every three seconds. The GPIO 4 button can also advance to the next page.
+
+1. **Live electrical readings**
+   - `V` — voltage in volts
+   - `F` — frequency in hertz
+   - `I` — current in amperes
+   - `P` — active power in watts
+
+2. **Energy and credit**
+   - `E` — cumulative energy reported by the PZEM in kWh
+   - `B` — locally available prepaid balance in kWh, after pending and in-flight consumption
+
+3. **Device and connection status**
+   - Line 1 shows the PAYGO label and the final four numeric digits of `PAYGO_DEVICE_ID`, e.g. `PAYGO #0001`.
+   - Line 2 uses `ONLINE|ACTV`, `OFFLINE|ACTV`, `ONLINE|UNAS` or `OFFLINE|UNAS`.
+   - `ONLINE` means a successful HTTPS heartbeat was received within the 15-second freshness window while Wi-Fi is connected.
+   - `ACTV` means the backend reports the meter assignment as `ACTIVATED`; `UNAS` means it is not activated.
+   - The activation state is cached in ESP32 Preferences so it remains meaningful during a temporary network outage.
+
+The LCD is configured for exactly 12 columns. The status labels are intentionally shortened to fit. The firmware updates only lines whose displayed text has changed and does not clear the LCD on every refresh. Failed PZEM reads are shown as dashes rather than presenting old electrical readings as current.
+
+## Balance and synchronization behavior
+
+- The backend remains the authoritative source for the prepaid balance.
+- The ESP32 tracks pending and in-flight consumption locally.
+- Available balance is calculated as `balanceKwh - pendingKwh - inflightKwh`.
+- The firmware periodically sends HTTPS heartbeat and balance updates.
+- Balance updates retain the existing optimistic `expected` balance check to avoid overwriting a concurrent top-up.
+- Balance and activation state are stored in ESP32 Preferences for recovery after reboot.
+- HTTPS certificate validation is required. There is no insecure TLS fallback.
+
+The ONLINE indicator reflects the HTTPS backend heartbeat, not MQTT connectivity.
+
+## Backend integration status
+
+This firmware currently uses HTTPS heartbeat and balance endpoints. It does **not** implement an MQTT client, MQTT credit subscription, or MQTT acknowledgement handler. The backend's MQTT credit-delivery flow is therefore not yet connected end to end to this firmware. Do not treat a successful payment or backend heartbeat as proof that a physical meter received and applied a purchase credit.
+
+The heartbeat response includes the backend's `assignmentStatus`. Deploy the matching PAYGO backend update before relying on the LCD's `ACTV` / `UNAS` indicator.
+
+The current device heartbeat endpoints do not yet provide a reviewed device-bound cryptographic identity protocol. Do not use a device ID alone as proof of device ownership or enable self-service pairing based on this firmware.
 
 ## Build with Arduino IDE
 
 1. Install the ESP32 Arduino board package.
-2. Install the `ArduinoJson` 7 and `LiquidCrystal_I2C` libraries.
-3. Copy `src/DeviceConfig.example.h` to `src/DeviceConfig.h`, then set the
-   registered meter ID and API base URL. Do not configure the shared demo
-   `DEVICE-001` for a customer meter.
-4. Copy `src/Secrets.example.h` to `src/Secrets.h`, then configure Wi-Fi and
-   paste the verified CA certificate for the configured API host. Set
-   `PAYGO_TLS_CA_CONFIGURED` to `1` only after verifying that certificate chain.
-5. Open `paygo_firmware.ino` in Arduino IDE, choose the correct ESP32 board and
-   port, then build and flash.
+2. Install the ArduinoJson 7 and LiquidCrystal_I2C libraries.
+3. Copy `src/DeviceConfig.example.h` to `src/DeviceConfig.h` and set the registered physical meter ID and API base URL. Use a unique ID with a numeric suffix for the LCD label.
+4. Copy `src/Secrets.example.h` to `src/Secrets.h` and configure Wi-Fi credentials and the verified CA certificate for the API host. Set `PAYGO_TLS_CA_CONFIGURED` to `1` only after verifying the certificate chain.
+5. Open `paygo_firmware.ino`, select the correct ESP32 board and port, compile, then flash the board.
 
-Device-specific config and Wi-Fi credentials are ignored by Git. HTTPS
-certificate validation is required; the firmware intentionally has no
-`setInsecure()` fallback. If system time or certificate verification fails,
-remote sync fails closed and the existing offline stored-balance path remains
-available.
-
-## Backend and MQTT integration status
-
-This firmware does **not** connect to MQTT. It has no MQTT client, broker
-configuration, device subscription, or MQTT acknowledgement handler. Its
-network synchronization currently uses HTTPS heartbeat and balance-update
-requests only.
-
-The backend has MQTT credit-delivery and acknowledgement logic, but that is not
-connected end to end to this firmware. Do not treat a successful payment, an
-HTTPS heartbeat, or a balance update as proof that a physical meter received
-and applied a purchase credit. Hardware delivery must remain unconfirmed until
-the firmware and backend implement and pass an integrated delivery and
-acknowledgement flow.
-
-## Current protocol limitations
-
-The backend's existing heartbeat and balance endpoints do not authenticate a
-device-bound cryptographic identity. HTTPS protects the transport, but does not
-prove meter ownership to the backend. Do not enable self-service pairing or
-treat a configured device ID as ownership verification until the backend and
-firmware share a reviewed, device-specific challenge and proof protocol. That
-protocol also requires compatible backend authorization and provisioning
-changes.
-
-## Runtime behavior
-
-The server remains authoritative for the stored balance. The firmware tracks
-local consumption as pending and in-flight energy and uses the existing
-optimistic `expected` balance check when syncing. It retains the prior startup
-and offline behavior, including the relay cutoff threshold and NVS recovery.
-
+Device-specific configuration and Wi-Fi credentials are ignored by Git and must be configured locally before building.
