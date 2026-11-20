@@ -19,7 +19,7 @@ void FrontPanel::showMessage(const char* line1, const char* line2) {
 }
 
 void FrontPanel::render(const PzemData& meter, double availableKwh, bool meterValid,
-                        bool backendOnline, bool meterActivated) {
+                        bool backendOnline, uint8_t assignmentState) {
   char line1[32] = {0};
   char line2[32] = {0};
 
@@ -44,9 +44,15 @@ void FrontPanel::render(const PzemData& meter, double availableKwh, bool meterVa
     snprintf(line2, sizeof(line2), "B:%.2fkWh", availableKwh);
   } else {
     formatDeviceLabel(line1, sizeof(line1));
+    const char* assignmentLabel = "UNAS";
+    switch (assignmentState) {
+      case 1: assignmentLabel = "ASGN"; break;
+      case 2: assignmentLabel = "ACTV"; break;
+      case 3: assignmentLabel = "SUSP"; break;
+      default: break;
+    }
     snprintf(line2, sizeof(line2), "%s|%s",
-             backendOnline ? "ONLINE" : "OFFLINE",
-             meterActivated ? "ACTV" : "UNAS");
+             backendOnline ? "ONLINE" : "OFFLINE", assignmentLabel);
   }
 
   writeLine(0, line1);
