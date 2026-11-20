@@ -28,6 +28,7 @@ class PayGoApp {
   void saveToStorage();
   EnergySnapshot snapshot();
   double availableEnergyKwh();
+  bool backendOnline() const;
   void logMeterFailure(PzemStatus status, uint8_t bytesReceived);
 
   PzemMeter meter_;
@@ -48,6 +49,9 @@ class PayGoApp {
   PzemData meterData_;
   double lastPzemKwh_ = 0;
   bool pzemSeeded_ = false;
+  bool meterValid_ = false;
+  volatile bool meterActivated_ = false;
+  volatile uint32_t lastSuccessfulHeartbeatAt_ = 0;
   uint32_t lastStorageAt_ = 0;
   uint32_t lastMeterReadAt_ = 0;
 };
