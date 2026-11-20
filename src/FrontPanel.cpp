@@ -1,7 +1,9 @@
 #include "FrontPanel.h"
 
 #include <Wire.h>
+#include <cstring>
 
+#include "DeviceConfig.h"
 #include "HardwareConfig.h"
 
 void FrontPanel::begin() {
@@ -16,19 +18,58 @@ void FrontPanel::showMessage(const char* line1, const char* line2) {
   writeLine(1, line2);
 }
 
-void FrontPanel::render(const PzemData& meter, double availableKwh, bool relayOn) {
-  char line1[24];
-  char line2[24];
+void FrontPanel::render(const PzemData& meter, double availableKwh, bool meterValid,
+                        bool backendOnline, bool meterActivated) {
+  char line1[32] = {0};
+  char line2[32] = {0};
+
   if (page_ == 0) {
-    snprintf(line1, sizeof(line1), "V:%.1f F:%.1fHz", meter.voltage, meter.frequency);
-    snprintf(line2, sizeof(line2), "I:%.2fA P:%.0fW", meter.current, meter.power);
+    if (meterValid) {
+      snprintf(line1, sizeof(line1), "V:%.0f F:%.0fHz", meter.voltage, meter.frequency);
+      if (meter.current < 10.0f) {
+        snprintf(line2, sizeof(line2), "I:%.1f P:%.0fW", meter.current, meter.power);
+      } else {
+        snprintf(line2, sizeof(line2), "I:%.0f P:%.0fW", meter.current, meter.power);
+      }
+    } else {
+      snprintf(line1, sizeof(line1), "V:--- F:--Hz");
+      snprintf(line2, sizeof(line2), "I:--- P:---W");
+    }
+  } else if (page_ == 1) {
+    snprintf(line1, sizeof(line1), "E:%.2fkWh", meter.energy);
+    snprintf(line2, sizeof(line2), "B:%.2fkWh", availableKwh);
   } else {
-    snprintf(line1, sizeof(line1), "Available:");
-    snprintf(line2, sizeof(line2), "%.3f kWh %s", static_cast<float>(availableKwh),
-             relayOn ? "ON" : "OFF");
+    formatDeviceLabel(line1, sizeof(line1));
+    snprintf(line2, sizeof(line2), "%s|%s",
+             backendOnline ? "ONLINE" : "OFFLINE",
+             meterActivated ? "ACTV" : "UNAS");
   }
+
   writeLine(0, line1);
   writeLine(1, line2);
+}
+
+void FrontPanel::formatDeviceLabel(char* output, size_t outputSize) const {
+  const char* deviceId = PAYGO_DEVICE_ID;
+  size_t end = strlen(deviceId);
+  size_t start = end;
+
+  while (start > 0 && deviceId[start - 1] >= '0' && deviceId[start - 1] <= '9') {
+    --start;
+  }
+
+  char suffix[5] = "0001";
+  const size_t digitCount = end - start;
+  if (digitCount > 0) {
+    const size_t copyCount = digitCount > 4 ? 4 : digitCount;
+    memset(suffix, '0', 4);
+    memcpy(suffix + (4 - copyCount), deviceId + end - copyCount, copyCount);
+    suffix[4] = '\0';
+  } else {
+    snprintf(suffix, sizeof(suffix), "----");
+  }
+
+  snprintf(output, outputSize, "PAYGO #%s", suffix);
 }
 
 bool FrontPanel::updatePage(uint32_t now) {
@@ -51,8 +92,22 @@ bool FrontPanel::updatePage(uint32_t now) {
 }
 
 void FrontPanel::writeLine(uint8_t row, const char* text) {
-  char line[17];
-  snprintf(line, sizeof(line), "%-16s", text);
+  if (row >= HardwareConfig::LCD_ROWS) {
+    return;
+  }
+
+  char line[HardwareConfig::LCD_COLUMNS + 1];
+  snprintf(line, sizeof(line), "%-*.*s",
+           HardwareConfig::LCD_COLUMNS,
+           HardwareConfig::LCD_COLUMNS,
+           text ? text : "");
+
+  if (lineDrawn_[row] && strcmp(lastLines_[row], line) == 0) {
+    return;
+  }
+
   lcd_.setCursor(0, row);
   lcd_.print(line);
+  memcpy(lastLines_[row], line, sizeof(line));
+  lineDrawn_[row] = true;
 }
