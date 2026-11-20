@@ -27,9 +27,9 @@ void FrontPanel::render(const PzemData& meter, double availableKwh, bool meterVa
     if (meterValid) {
       snprintf(line1, sizeof(line1), "V:%.0f F:%.0fHz", meter.voltage, meter.frequency);
       if (meter.current < 10.0f) {
-        snprintf(line2, sizeof(line2), "I:%.1f P:%.0fW", meter.current, meter.power);
+        snprintf(line2, sizeof(line2), "I:%.1fA P%.0fW", meter.current, meter.power);
       } else {
-        snprintf(line2, sizeof(line2), "I:%.0f P:%.0fW", meter.current, meter.power);
+        snprintf(line2, sizeof(line2), "I:%.0fA P%.0fW", meter.current, meter.power);
       }
     } else {
       snprintf(line1, sizeof(line1), "V:--- F:--Hz");
