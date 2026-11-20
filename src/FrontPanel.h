@@ -10,7 +10,7 @@ class FrontPanel {
   void begin();
   void showMessage(const char* line1, const char* line2);
   void render(const PzemData& meter, double availableKwh, bool meterValid,
-              bool backendOnline, bool meterActivated);
+              bool backendOnline, uint8_t assignmentState);
   bool updatePage(uint32_t now);
 
  private:
