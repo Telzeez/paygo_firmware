@@ -118,6 +118,7 @@ BalanceReply PayGoApi::sendRequest(const char* method, const String& url, const 
     if (!deserializeJson(response, responseBody)) {
       result.resetBalance = response["resetBalance"] | false;
       result.resetCommandId = response["resetCommandId"] | "";
+      result.assignmentStatus = response["assignmentStatus"] | "";
     }
   } else {
     result.error = http.errorToString(result.httpStatus);
