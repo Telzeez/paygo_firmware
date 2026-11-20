@@ -50,7 +50,7 @@ class PayGoApp {
   double lastPzemKwh_ = 0;
   bool pzemSeeded_ = false;
   bool meterValid_ = false;
-  volatile bool meterActivated_ = false;
+  volatile uint8_t assignmentState_ = 0;
   volatile uint32_t lastSuccessfulHeartbeatAt_ = 0;
   uint32_t lastStorageAt_ = 0;
   uint32_t lastMeterReadAt_ = 0;
