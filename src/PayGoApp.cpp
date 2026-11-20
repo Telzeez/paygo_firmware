@@ -6,6 +6,15 @@
 
 #include "HardwareConfig.h"
 
+namespace {
+uint8_t assignmentStateFromApi(const String& status) {
+  if (status == "ASSIGNED") return 1;
+  if (status == "ACTIVATED") return 2;
+  if (status == "SUSPENDED") return 3;
+  return 0;
+}
+}  // namespace
+
 void PayGoApp::setup() {
   Serial.begin(115200);
   relay_.begin();
@@ -51,7 +60,7 @@ void PayGoApp::setup() {
       portEXIT_CRITICAL(&mux_);
       lastPzemKwh_ = saved.lastPzemKwh;
       pzemSeeded_ = saved.pzemSeeded;
-      meterActivated_ = saved.meterActivated;
+      assignmentState_ = saved.assignmentState;
     }
     panel_.showMessage("PAYGO SOLAR", "Offline Mode");
     delay(1500);
@@ -68,7 +77,7 @@ void PayGoApp::setup() {
 
   updateEnergyLogic();
   applyOutputState();
-  panel_.render(meterData_, availableEnergyKwh(), meterValid_, backendOnline(), meterActivated_);
+  panel_.render(meterData_, availableEnergyKwh(), meterValid_, backendOnline(), assignmentState_);
   lastStorageAt_ = millis();
 
   const BaseType_t taskCreated = xTaskCreatePinnedToCore(
@@ -134,7 +143,7 @@ void PayGoApp::loop() {
     renderPanel = true;
   }
   if (renderPanel) {
-    panel_.render(meterData_, availableEnergyKwh(), meterValid_, backendOnline(), meterActivated_);
+    panel_.render(meterData_, availableEnergyKwh(), meterValid_, backendOnline(), assignmentState_);
   }
   buzzer_.update(availableEnergyKwh(), now);
 }
@@ -176,7 +185,7 @@ bool PayGoApp::syncInitialBalance() {
 
   lastSuccessfulHeartbeatAt_ = millis();
   if (reply.assignmentStatus.length() > 0) {
-    meterActivated_ = reply.assignmentStatus == "ACTIVATED";
+    assignmentState_ = assignmentStateFromApi(reply.assignmentStatus);
   }
 
   portENTER_CRITICAL(&mux_);
@@ -197,9 +206,9 @@ void PayGoApp::sendHeartbeat() {
   if (reply.httpStatus == 200 && reply.hasBalance) {
     lastSuccessfulHeartbeatAt_ = millis();
     if (reply.assignmentStatus.length() > 0) {
-      const bool activated = reply.assignmentStatus == "ACTIVATED";
-      if (meterActivated_ != activated) {
-        meterActivated_ = activated;
+      const uint8_t assignmentState = assignmentStateFromApi(reply.assignmentStatus);
+      if (assignmentState_ != assignmentState) {
+        assignmentState_ = assignmentState;
         needSave_ = true;
       }
     }
@@ -333,7 +342,7 @@ void PayGoApp::saveToStorage() {
 
   saved.lastPzemKwh = lastPzemKwh_;
   saved.pzemSeeded = pzemSeeded_;
-  saved.meterActivated = meterActivated_;
+  saved.assignmentState = assignmentState_;
   if (!store_.save(saved)) {
     Serial.println("Could not save meter state; it will be retried.");
     needSave_ = true;
@@ -351,7 +360,7 @@ EnergySnapshot PayGoApp::snapshot() {
   portEXIT_CRITICAL(&mux_);
   current.lastPzemKwh = lastPzemKwh_;
   current.pzemSeeded = pzemSeeded_;
-  current.meterActivated = meterActivated_;
+  current.assignmentState = assignmentState_;
   return current;
 }
 
