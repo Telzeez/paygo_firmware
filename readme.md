@@ -31,10 +31,10 @@ The LCD rotates through three pages every three seconds. The GPIO 4 button can a
 
 3. **Device and connection status**
    - Line 1 shows the PAYGO label and the final four numeric digits of `PAYGO_DEVICE_ID`, e.g. `PAYGO #0001`.
-   - Line 2 uses `ONLINE|ACTV`, `OFFLINE|ACTV`, `ONLINE|UNAS` or `OFFLINE|UNAS`.
+   - Line 2 combines network and assignment state, for example `ONLINE|ACTV`, `OFFLINE|ACTV`, `ONLINE|ASGN`, `ONLINE|UNAS` or `ONLINE|SUSP`.
    - `ONLINE` means a successful HTTPS heartbeat was received within the 15-second freshness window while Wi-Fi is connected.
-   - `ACTV` means the backend reports the meter assignment as `ACTIVATED`; `UNAS` means it is not activated.
-   - The activation state is cached in ESP32 Preferences so it remains meaningful during a temporary network outage.
+   - `ACTV` means the backend reports `ACTIVATED`; `ASGN` means assigned but awaiting owner activation; `UNAS` means unassigned; `SUSP` means suspended.
+   - The assignment state is cached in ESP32 Preferences so it remains meaningful during a temporary network outage.
 
 The LCD is configured for exactly 12 columns. The status labels are intentionally shortened to fit. The firmware updates only lines whose displayed text has changed and does not clear the LCD on every refresh. Failed PZEM reads are shown as dashes rather than presenting old electrical readings as current.
 
