@@ -24,7 +24,7 @@ struct EnergySnapshot {
   double inflightKwh = 0;
   double lastPzemKwh = 0;
   bool pzemSeeded = false;
-  bool meterActivated = false;
+  uint8_t assignmentState = 0;
 };
 
 struct BalanceReply {
