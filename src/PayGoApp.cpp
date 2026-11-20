@@ -134,7 +134,7 @@ void PayGoApp::loop() {
     renderPanel = true;
   }
   if (renderPanel) {
-    panel_.render(meterData_, availableEnergyKwh(), relay_.isOn());
+    panel_.render(meterData_, availableEnergyKwh(), meterValid_, backendOnline(), meterActivated_);
   }
   buzzer_.update(availableEnergyKwh(), now);
 }
