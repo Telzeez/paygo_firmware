@@ -17,6 +17,7 @@ bool BalanceStore::load(EnergySnapshot& snapshot) {
   if (snapshot.pzemSeeded) {
     snapshot.lastPzemKwh = preferences_.getDouble("pz", 0.0);
   }
+  snapshot.meterActivated = preferences_.getBool("act", false);
   return true;
 }
 
@@ -29,5 +30,7 @@ bool BalanceStore::save(const EnergySnapshot& snapshot) {
   const size_t pendingBytes = preferences_.putDouble("pend2", snapshot.pendingKwh);
   const size_t inflightBytes = preferences_.putDouble("infl2", snapshot.inflightKwh);
   const size_t pzemBytes = preferences_.putDouble("pz", snapshot.lastPzemKwh);
-  return balanceBytes > 0 && pendingBytes > 0 && inflightBytes > 0 && pzemBytes > 0;
+  const size_t activationBytes = preferences_.putBool("act", snapshot.meterActivated);
+  return balanceBytes > 0 && pendingBytes > 0 && inflightBytes > 0 &&
+         pzemBytes > 0 && activationBytes > 0;
 }
