@@ -15,6 +15,8 @@ constexpr uint8_t RELAY_ON_LEVEL = HIGH;
 constexpr uint8_t RELAY_OFF_LEVEL = LOW;
 
 constexpr uint8_t LCD_ADDRESS = 0x27;
+constexpr uint8_t LCD_COLUMNS = 12;
+constexpr uint8_t LCD_ROWS = 2;
 constexpr uint8_t PZEM_ADDRESS = 0xF8;
 constexpr uint32_t PZEM_BAUD_RATE = 9600;
 constexpr uint8_t PZEM_READ_ATTEMPTS = 3;
@@ -30,10 +32,11 @@ constexpr uint32_t BUZZER_INTERVAL_MS = 5000;
 constexpr uint32_t BUZZER_DURATION_MS = 200;
 constexpr uint32_t WIFI_CONNECT_TIMEOUT_MS = 10000;
 constexpr uint32_t HTTP_TIMEOUT_MS = 10000;
+constexpr uint32_t BACKEND_ONLINE_TTL_MS = 15000;
 
 constexpr double MIN_PUSH_KWH = 0.001;
 constexpr double BALANCE_EQUALITY_EPSILON_KWH = 0.0005;
 constexpr double RELAY_MINIMUM_KWH = 0.001;
 constexpr double LOW_BALANCE_WARNING_KWH = 1.0;
-constexpr uint8_t DISPLAY_PAGE_COUNT = 2;
+constexpr uint8_t DISPLAY_PAGE_COUNT = 3;
 }  // namespace AppConfig
