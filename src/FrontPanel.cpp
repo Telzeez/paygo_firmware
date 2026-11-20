@@ -36,7 +36,11 @@ void FrontPanel::render(const PzemData& meter, double availableKwh, bool meterVa
       snprintf(line2, sizeof(line2), "I:--- P:---W");
     }
   } else if (page_ == 1) {
-    snprintf(line1, sizeof(line1), "E:%.2fkWh", meter.energy);
+    if (meterValid) {
+      snprintf(line1, sizeof(line1), "E:%.2fkWh", meter.energy);
+    } else {
+      snprintf(line1, sizeof(line1), "E:--");
+    }
     snprintf(line2, sizeof(line2), "B:%.2fkWh", availableKwh);
   } else {
     formatDeviceLabel(line1, sizeof(line1));
@@ -98,8 +102,8 @@ void FrontPanel::writeLine(uint8_t row, const char* text) {
 
   char line[HardwareConfig::LCD_COLUMNS + 1];
   snprintf(line, sizeof(line), "%-*.*s",
-           HardwareConfig::LCD_COLUMNS,
-           HardwareConfig::LCD_COLUMNS,
+           static_cast<int>(HardwareConfig::LCD_COLUMNS),
+           static_cast<int>(HardwareConfig::LCD_COLUMNS),
            text ? text : "");
 
   if (lineDrawn_[row] && strcmp(lastLines_[row], line) == 0) {
