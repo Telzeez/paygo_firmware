@@ -24,6 +24,7 @@ struct EnergySnapshot {
   double inflightKwh = 0;
   double lastPzemKwh = 0;
   bool pzemSeeded = false;
+  bool meterActivated = false;
 };
 
 struct BalanceReply {
@@ -32,5 +33,6 @@ struct BalanceReply {
   double balanceKwh = 0;
   bool resetBalance = false;
   String resetCommandId;
+  String assignmentStatus;
   String error;
 };
