@@ -104,6 +104,7 @@ BalanceReply PayGoApi::sendRequest(const char* method, const String& url, const 
     return result;
   }
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-Device-API-Key", PAYGO_DEVICE_API_KEY);
 
   if (strcmp(method, "POST") == 0) {
     result.httpStatus = http.POST(body);
