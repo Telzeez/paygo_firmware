@@ -15,6 +15,10 @@
 #endif
 #include "DeviceConfig.h"
 
+#ifndef PAYGO_DEVICE_API_KEY
+#error "Set a unique PAYGO_DEVICE_API_KEY in DeviceConfig.h before building."
+#endif
+
 #if !__has_include("Secrets.h")
 #error "Copy Secrets.example.h to Secrets.h and configure Wi-Fi and the HTTPS CA certificate."
 #endif
