@@ -56,7 +56,7 @@ This firmware currently uses HTTPS heartbeat and balance endpoints. It does **no
 
 The heartbeat response includes the backend's `assignmentStatus`. Deploy the matching PAYGO backend update before relying on the LCD's `ACTV` / `UNAS` indicator.
 
-The current device heartbeat endpoints do not yet provide a reviewed device-bound cryptographic identity protocol. Do not use a device ID alone as proof of device ownership or enable self-service pairing based on this firmware.
+Each HTTPS hardware request includes a unique per-device API key in the `X-Device-API-Key` header. The backend stores only the SHA-256 hash of this key. Do not reuse keys between devices, expose them in logs, or commit `DeviceConfig.h`. A device ID alone is not an authentication credential.
 
 ## Arduino IDE project
 
@@ -112,6 +112,7 @@ Inside the extracted project folder, in `src/`:
 1. Make a copy of `DeviceConfig.example.h` named `DeviceConfig.h`.
 2. Set `PAYGO_DEVICE_ID` to the registered ID printed on this physical meter. Use a unique ID with a numeric suffix, such as `PAYGO-ESP32-0001`.
 3. Keep `PAYGO_API_BASE_URL` set to the production backend URL unless the deployment changes.
+3a. In the PAYGO administrator dashboard, generate a unique API key for this meter. Copy it once into `DeviceConfig.h` as `PAYGO_DEVICE_API_KEY`. The backend stores only a hash. Rotating this key invalidates the previous one, so update and reflash the device immediately.
 4. Make a copy of `Secrets.example.h` named `Secrets.h`.
 5. Enter the Wi-Fi SSID and password, and add the verified root CA certificate for the API host. Set `PAYGO_TLS_CA_CONFIGURED` to `1` only after adding and verifying the correct certificate.
 

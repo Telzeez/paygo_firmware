@@ -15,6 +15,10 @@
 #endif
 #include "DeviceConfig.h"
 
+#ifndef PAYGO_DEVICE_API_KEY
+#error "Set a unique PAYGO_DEVICE_API_KEY in DeviceConfig.h before building."
+#endif
+
 #if !__has_include("Secrets.h")
 #error "Copy Secrets.example.h to Secrets.h and configure Wi-Fi and the HTTPS CA certificate."
 #endif
@@ -104,6 +108,7 @@ BalanceReply PayGoApi::sendRequest(const char* method, const String& url, const 
     return result;
   }
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-Device-API-Key", PAYGO_DEVICE_API_KEY);
 
   if (strcmp(method, "POST") == 0) {
     result.httpStatus = http.POST(body);
