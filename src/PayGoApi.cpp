@@ -11,13 +11,15 @@
 #include "HardwareConfig.h"
 
 #if !__has_include("DeviceConfig.h")
-#error "Copy DeviceConfig.example.h to DeviceConfig.h and set the registered device ID."
+#error "Copy DeviceConfig.example.h to DeviceConfig.h and set the registered device ID and API key."
 #endif
 #include "DeviceConfig.h"
 
 #ifndef PAYGO_DEVICE_API_KEY
-#error "Set a unique PAYGO_DEVICE_API_KEY in DeviceConfig.h before building."
+#error "Set PAYGO_DEVICE_API_KEY in DeviceConfig.h. Obtain a unique key for this meter from the PAYGO admin panel."
 #endif
+static_assert(sizeof(PAYGO_DEVICE_API_KEY) > 33,
+              "PAYGO_DEVICE_API_KEY must be the full device-specific key returned by PAYGO.");
 
 #if !__has_include("Secrets.h")
 #error "Copy Secrets.example.h to Secrets.h and configure Wi-Fi and the HTTPS CA certificate."
